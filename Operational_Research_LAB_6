@@ -1,0 +1,399 @@
+//this code belongs to Tridev Rapeti
+//19MA20040
+
+//inequalities such as are not counted as inequalities x1,x2>=0, because in this code aa xi are assumed to be positive as all questions have this condition
+
+#include <bits/stdc++.h>
+using namespace std;
+float M=1000000;
+
+vector<float> gs(vector<vector<float> >a, vector<float>b, vector<float>x) {
+    for(int i=0; i<20; i++) {
+        for(int j=0; j<b.size(); j++) {
+            float c=b[j];
+            for(int i=0; i<b.size(); i++) if(j!=i) c-=a[j][i]*x[i];
+            x[j]=c/a[j][j];
+        }
+    }
+    return x;
+}
+
+vector<vector<float> > recgs(vector<vector<float> >a, vector<float>b, vector<float>x, int n, int m) {
+    vector<vector<float> >xt;
+    for(int i=0; i<n; i++) {
+        vector<float>x1=x;
+        x1.erase(x1.begin()+i);
+        vector<vector<float> >anew;
+        for(int j=0; j<a.size(); j++) {
+            vector<float>anew1;
+            for(int k=0; k<a[j].size(); k++) {
+                if(i!=k) {
+                    anew1.push_back(a[j][k]);
+                }
+            }
+            anew.push_back(anew1);
+        }
+        if(x1.size()==m) {
+            vector<float>x2;
+            x2=gs(anew,b,x1);
+            x2.insert(x2.begin()+i,0);
+            xt.push_back(x2);
+            for(int i=0; i<x2.size(); i++) {
+                //cout << i << "," << x2[i] << "," << xt.size() << endl;
+                if(isnan(x2[i])) {
+                    xt.erase(xt.begin()+xt.size()-1);
+                    break;
+                }
+            }
+        }
+        else {
+            vector<vector<float> >xt1=recgs(anew,b,x1,n-1,m);
+            for(int j=0; j<xt1.size(); j++) xt1[j].insert(xt1[j].begin()+i,0);
+            xt.insert(xt.end(),xt1.begin(),xt1.end());
+        }
+    }
+    return xt;
+}
+
+void print_basic_solutions(vector<vector<float> >ans,int n, int m,vector<float>z) {
+    if(ans.size()) {
+        for(int i=0; i<ans.size(); i++) {
+            int p=0;
+            for(int j=0; j<n-m; j++) if(ans[i][j]<0) p=1;
+            if(p) {
+                ans.erase(ans.begin()+i);
+                i--;
+            }
+        }
+    }
+    else cout << "No Feasible solutions";
+    if(ans.size()) {
+        cout << "There are " << ans.size() << " feasible solutions : " << endl;
+        cout << endl << endl << "(";
+        for(int i=0; i<ans[0].size(); i++) {
+            cout << "x" << i+1 << ",";
+        }
+        cout << "z) = " << endl;
+        for(int i=0; i<ans.size(); i++) {
+            cout << i+1 << " : (";
+            float z1=0;
+            for(int j=0; j<z.size(); j++) z1+=(z[j]*ans[i][j]);
+            for(int j=0; j<ans[0].size(); j++) cout << ans[i][j] << ",";
+            cout << z1 << ")" << endl;
+        }
+    }
+    else cout << "No Feasible solutions";
+    
+}
+
+void print_simplex_table(vector<vector<float> >st,vector<vector<string> >var, int maximise) {
+    string s;
+    int max=5;
+    for(int i=0; i<st.size(); i++) {
+        for(int j=0; j<st[0].size(); j++) {
+            stringstream sss;
+            sss << st[i][j];
+            sss >> s;
+            if(max < s.size()) max=s.size();
+        }
+    }
+    cout << "+-";
+    string s3(max+1,'-');
+    for(int i=0; i<var[0].size(); i++) cout << s3 << "-+-";
+    cout << "-----+" << endl << "| ";
+    string s1(max,' ');
+    for(int i=0; i<var[0].size(); i++) {
+        s=var[0][i]+s1;
+        s.erase(s.size()-var[0][i].size());
+        if(var[0][i]!="1") cout << "-" << s << " | ";
+        else cout << " " << s << " | ";
+    }
+    cout << "     |" << endl << "+-";
+    for(int i=0; i<var[0].size(); i++) cout << s3 << "-+-";
+    cout << "-----+" << endl;
+    for(int i=0; i<st.size(); i++) {
+        cout << "| ";
+        for(int j=0; j<st[i].size(); j++) {
+            stringstream sss;
+            sss << st[i][j];
+            sss >> s;
+            int s2 = s.size();
+            s+=s1;
+            s.erase(s.size()-s2);
+            if(st[i][j]>=0) s=" "+s;
+            else s=s+" ";
+            cout << s << " | ";
+        }
+        if(maximise) {
+            if(i!=(st.size()-1)) cout << var[i+1][var[0].size()-1] << "   |" << endl;
+            else cout << "z" << "    |" << endl;
+        }
+        else {
+            if(i!=(st.size()-1)) cout << " " << var[i+1][var[0].size()-1] << "  |" << endl;
+            else cout << "-z" << "   |" << endl;
+        }
+        cout << "+-";
+        for(int k=0; k<var[0].size(); k++) cout << s3 << "-+-";
+        cout << "-----+" << endl;
+    }
+}
+
+vector<vector<float> > simplex_table(vector<vector<float> >a, vector<float>b, vector<float>x, int n, int m, vector<float>z, int maximise, float dsums) {
+    vector<vector<float> >st;
+    for(int i=0; i<a.size(); i++) {
+        vector<float>st1;
+        for(int j=0; j<n-m; j++) {
+            st1.push_back(a[i][j]);
+        }
+        st.push_back(st1);
+    }
+    st.push_back(z);
+    for(int i=0; i<b.size(); i++) st[i].push_back(b[i]);
+    st[st.size()-1].push_back(0);
+    for(int i=0; i<st[st.size()-1].size()-1; i++) st[st.size()-1][i]*=(-1);
+    st[st.size()-1][st[st.size()-1].size()-1]=dsums;
+    return st;
+}
+
+int simplex(vector<vector<float> >&st, vector<vector<string> >&var, int &p) {
+    float min=100000000000000,pivot;
+    for(int i=0; i<st[st.size()-1].size()-1; i++) {
+        if(st[st.size()-1][i]<=0 && min>st[st.size()-1][i]) {
+            min=st[st.size()-1][i];
+            p=i;
+        }
+    }
+    if(min==100000000000000) return 2;
+    min=1000000000000000;
+    for(int i=0; i<st.size()-1; i++) {
+        if(st[i][p]>0 && min>(st[i][st[i].size()-1]/st[i][p])) {
+            min=(st[i][st[i].size()-1]/st[i][p]);
+            pivot=i;
+        }
+    }            //(pivot,p)
+    if(min==1000000000000000) return 0;
+    vector<vector<float> >stnew=st;
+    for(int i=0; i<st[0].size(); i++) {
+        stnew[pivot][i]=stnew[pivot][i]/st[pivot][p];
+    }
+    for(int i=0; i<st.size(); i++) {
+        stnew[i][p]=(-1)*stnew[i][p]/st[pivot][p];
+    }
+    stnew[pivot][p]=1/st[pivot][p];
+    for(int i=0; i<st.size(); i++) {
+        if(i!=pivot) {
+            for(int j=0; j<st[0].size(); j++) {
+                if(j!=p) {
+                    stnew[i][j]=((((st[i][j])*(st[pivot][p]))-((st[pivot][j])*(st[i][p])))/st[pivot][p]);
+                }
+            }
+        }
+    }
+    string random=var[pivot+1][var[0].size()-1];
+    var[pivot+1][var[0].size()-1]=var[0][p];
+    var[0][p]=random;
+    st=stnew;
+    return 1;
+}
+
+void print_variables(vector<vector<vector<float> > >st, vector<vector<vector<string> > >var, int i, char v,vector<int>pivots,int yes) {
+    if(v=='x') {
+        if(yes) cout << "All Non-basic variables in " << i << "th iteration is given by :" << endl << "{ ";
+        else cout << "All final values of non-basic variables is given by : " << endl << "{ ";
+        for(int j=0; j<var[i][0].size()-2; j++) cout << var[i][0][j] << " , ";
+        cout << var[i][0][var[i][0].size()-2] << " }" << endl;
+    }
+    else if(yes) {
+        cout << "All basic variables in " << i << "th iteration along with corresponding min ratios is given by :" << endl;
+        for(int j=1; j<var[i].size()-1; j++) {
+            cout << var[i][j][var[i][0].size()-1] << " = " << st[i][j][st[i][0].size()-1] << " :: min ratio = " << st[i][j][st[i][0].size()-1]/st[i][j][pivots[i]] << endl;
+        }
+    }
+    else {
+        cout << "All final values of non-basic variables is given by : " << endl;
+        for(int j=1; j<var[i].size()-1; j++) {
+            cout << var[i][j][var[i][0].size()-1] << " = " << st[i][j][st[i][0].size()-1] << endl;
+        }
+    }
+}
+
+int main() {
+    vector<vector<float> >a;
+    vector<float>b;
+    int m,n,q;
+    float k,dsums=0;
+    cout << "number of inequalities (value of m) : ";
+    cin >> m;
+    cout << "Number of variables to be found (value of n): ";
+    cin >> n;
+    vector<float>asums(n,0);
+    vector<float>slack;
+    for(int i=0; i<m; i++) {
+        vector<float>a1;
+        for(int j=0; j<n; j++) {
+            cout << "Coefficient of x" << j+1 << " of " << i+1 << "th equation : ";
+            cin >> k;
+            a1.push_back(k);
+        }
+        cout << "value of constant which makes the " << i+1 << "th inequality non-homogenous : ";
+        cin >> k;
+        b.push_back(k);
+        cout << "sign of the inequality ( Enter '0' for '>=', '1' for '=' and '2' for '<=' ) : ";
+        cin >> k;
+        if(!k) {
+            slack.push_back(i);
+            for(int j=0; j<n; j++) asums[j]+=a1[j];
+            dsums+=b[b.size()-1];
+        }
+        if(k==1) {
+            for(int j=0; j<n; j++) asums[j]+=a1[j];
+            dsums+=b[b.size()-1];
+        }
+        for(int j1=0; j1<m+1; j1++) {                                    //x1, x2, x3, z1, z2, z3, z4  //x1+
+            if(j1!=i) a1.push_back(0);
+            else a1.push_back(1);
+        }
+        a.push_back(a1);
+    }
+    for(int i=0; i<slack.size(); i++) {
+        for(int j=0; j<m; j++) {
+            if(slack[i]!=j) a[j].insert(a[j].begin()+i+n,0);
+            else a[j].insert(a[j].begin()+i+n,-1);
+        }
+    }
+    n+=(m+slack.size());
+    vector<string>var1(n-m+1,"1");
+    vector<vector<string> >var(m+1,var1);
+    for(int j=0; j<var[0].size()-1; j++) {
+        stringstream sss;
+        sss<<j+1;
+        sss>>var[0][j];
+        var[0][j]="x"+var[0][j];
+    }
+    // x1 x2 x3 1 
+    // 1  1  1  z1
+    // 1  1  1  z2
+    // 1  1  1  z3
+    // 1  1  1  z4
+    for(int j=1; j<var.size(); j++) {
+        stringstream sss;
+        sss<<j; 
+        sss>>var[j][var[0].size()-1];
+        var[j][var[0].size()-1]="z"+var[j][var[0].size()-1];
+    }
+    vector<float>x(n,0);
+    vector<vector<float> >ans1;
+    if(m!=n) ans1=recgs(a,b,x,n,m);
+    else ans1.push_back(gs(a,b,x));
+    vector<float>z;
+    cout << endl << "Minimise Z value or Maximise Z value (0 or 1)?";
+    int maximise;
+    cin >> maximise;
+    for(int i=0; i<n-m; i++) {
+        if(i<(n-m-slack.size())) {
+            cout << "Coefficient of x" << i+1 << " in Z equation : ";    
+            cin >> k;
+            if(maximise) k+=(M*(asums[i]));
+            else k=(M*asums[i])-k;
+        }
+        else k=-M;
+        z.push_back(k);
+    }
+    dsums*=((-1)*M);
+    vector<vector<vector<float> > > stall;
+    vector<vector<vector<string> > > varall;
+    cout << endl << endl << endl << "***!!! ANSWER ALL BEL0W QUESTIONS IN BINARY (0 FOR NO, 1 FOR YES) !!!***" << endl << endl;
+    cout << "a) print BFS? : ";
+    cin >> k;
+    if(k) print_basic_solutions(ans1,n,m,z);
+    vector<vector<float> > st=simplex_table(a,b,x,n,m,z,maximise,dsums);
+    stall.push_back(st);
+    varall.push_back(var);
+    print_simplex_table(st,var,maximise);
+    int c=1,d=0;
+    vector<int>pivots;
+    while(c) {
+        int pivot=0;
+        c=simplex(st,var,pivot);
+        print_simplex_table(st,var,maximise);
+        pivots.push_back(pivot);
+        if(c==0) {
+            c=2;
+            break;
+        }
+        else if(c==2) {
+            c=0;
+            break;
+        }
+        else c=0;
+        stall.push_back(st);
+        varall.push_back(var);
+        for(int i=0; i<st[0].size()-1; i++) {
+            if(st[st.size()-1][i]<0) {
+                c=1;
+                break;
+            }
+            else if(st[st.size()-1][i]==0) d=1;
+        }
+        if(stall.size()==1000) break;
+    }
+    cout << endl << "b) print number of iterations required to solve the problem? : ";
+    cin >> k;
+    if(k && !c) cout << "Total Number fo iterations required for solving the given problem is " << stall.size()-1 << endl;
+    else if(k) cout << endl << "Total Number fo iterations required for solving the given problem is infinite" << endl;
+    cout << endl << "c) print all non-basic variables? : ";
+    cin >> k;
+    if(k) {
+        cout << "i = ";
+        cin >> k;
+        if(k<stall.size()) {
+            cout << "Non-Basic variables given by " << endl;
+            print_variables(stall,varall,k,'x',pivots,1);
+        }
+        else {
+            cout << "Solution arrived with just " << stall.size()-1 << " iterations, so displaying final values of Non-Basic variables : ";
+            print_variables(stall,varall,stall.size()-1,'x',pivots,0);
+        }
+    }
+    cout << endl << "d) print all basic variables? : ";
+    cin >> k;
+    if(k) {
+        cout << "i = ";
+        cin >> k;
+        if(k<stall.size()) {
+            cout << "Basic variables given by " << endl;
+            print_variables(stall,varall,k,'z',pivots,1);
+        }
+        else {
+            cout << "Solution arrived with just " << stall.size()-1 << " iterations, so displaying final values of Basic variables : ";
+            print_variables(stall,varall,stall.size()-1,'z',pivots,0);
+        }
+    }
+    cout << endl << "e) print simplex table? : ";
+    cin >> k;
+    if(k) {
+        cout << "i = ";
+        cin >> k;
+        if(k<stall.size()) print_simplex_table(stall[k],varall[k],maximise);
+        else {
+            cout << "Solution arrived with just " << stall.size()-1 << " iterations, so displaying final simplex table : " << endl;
+            print_simplex_table(stall[stall.size()-1],varall[varall.size()-1],maximise);
+        }
+    }
+    cout << endl << "f) print final optimal solution? : ";
+    cin >> k;
+    if(k) {
+        if(!c && d) cout << "Has infinite no. of optimal solutions, one of them is given by" << endl;
+        else if(!c) cout << "The optimal solution is given by" << endl;
+        else if(c==2) cout << "There are no optimall solutions, no pivot element to perform" << stall.size() <<"th iteration, last simplex table is given by " << endl;
+        else cout << "There are no optimal solutions, 1000 iterations performed, 1000th iteration results given by ";
+        cout << "optimal simplex table : " << endl;
+        print_simplex_table(st,var,maximise);
+        cout << endl;
+        print_variables(stall,varall,stall.size()-1,'x',pivots,0);
+        print_variables(stall,varall,stall.size()-1,'z',pivots,0);
+        if(maximise) cout << endl << "z = " << stall[stall.size()-1][st.size()-1][st[0].size()-1] << endl;
+        else cout << endl << "z = " << -1*stall[stall.size()-1][st.size()-1][st[0].size()-1] << endl;
+    }
+    return 0;
+}
